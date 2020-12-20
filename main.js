@@ -1,34 +1,63 @@
 let canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
-let direction = 39;
+let gameEnd;
 
-//Эскиз игрового поля, игрового счета и текста 'Конец игры'.
-class Canvas {
-    constructor(score) {
-        this.score = score
+class Restart {
+    constructor(x,y,width,height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.isActive = false;
     }
-    drawCanvas() {
-        ctx.lineWidth = 20;
-        ctx.strokeRect(0,0,400,400)
-    }
-    drawScore() {
-        ctx.font = '25px Arial'
-        ctx.fillText('Счет:' + ' ' + this.score, 15,40)
-    }
-    drawEndGameText() {
-        ctx.font = '50px Arial'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText('Конец игры',200,200)
+    drawRestartBtn() {
+    ctx.fillStyle = 'black'
+    ctx.fillRect(this.x,this.y,this.width,this.height)
+    ctx.font = '15px Arial'
+    ctx.textAlign = 'left'
+    ctx.fillStyle = 'white'
+    ctx.fillText('RESTART',this.x + ctx.measureText('RESTART').width - this.width/2, this.y + this.height/2)
     }
 }
 
-//Эскиз тела змеи.
+class Canvas {
+    constructor(width,height,lineWidth,score) {
+        this.x;
+        this.y;
+        this.width = width;
+        this.height = height;
+        this.score = score;
+        this.lineWidth = lineWidth;
+    }
+    drawCanvas() {
+        this.x = 0;
+        this.y = 0;
+        ctx.lineWidth = this.lineWidth;
+        ctx.strokeRect(this.x,this.y,this.width,this.height)
+    }
+    drawScore() {
+        this.x = 15;
+        this.y = 40;
+        ctx.font = '25px Arial'
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('Счет:' + ' ' + this.score, this.x,this.y)
+    }
+    drawEndGameText() {
+        this.x = 200;
+        this.y = 200;
+        ctx.font = '50px Arial'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('Конец игры',this.x,this.y)
+    }
+}
+
 class Blocks {
-    constructor(col,row,color,blockSize) {
-        this.col = col
-        this.row = row
-        this.color = color
+    constructor(col,row,blockSize) {
+        this.col = col 
+        this.row = row 
+        this.color = 'blue'
         this.blockSize = blockSize
     }
     SnakeBlocks() {
@@ -38,11 +67,11 @@ class Blocks {
     }
 }
 
-//Класс, отвечающий за отрисовку змеи, ее передвижение и столкновение со стеной, собственным телом или с яблоком 
  class Snake {
-    constructor() {
-        this.arrOfHeads = [new Blocks(200,200,'blue',10),new Blocks(190,200,'blue',10),new Blocks(180,200,'blue',10)],
+    constructor(direction) {
+        this.arrOfHeads = [new Blocks(200,200,10),new Blocks(190,200,10),new Blocks(180,200,10)],
         this.newSnakeHead;
+        this.direction = direction
     }
     drawSnakeBlocks() {
         for(let i=0;i<this.arrOfHeads.length;i++) {
@@ -51,17 +80,20 @@ class Blocks {
     }
     moveSnake() {
         let headOfSnake = this.arrOfHeads[0];
-        if(direction === 39) {
-        this.newSnakeHead = new Blocks(headOfSnake.col + headOfSnake.blockSize,headOfSnake.row, 'blue',headOfSnake.blockSize)
-        }
-        if(direction === 37) {
-        this.newSnakeHead = new Blocks(headOfSnake.col - headOfSnake.blockSize,headOfSnake.row, 'blue',headOfSnake.blockSize)
-        }
-        if(direction === 38) {
-        this.newSnakeHead = new Blocks(headOfSnake.col,headOfSnake.row - headOfSnake.blockSize, 'blue',headOfSnake.blockSize)
-        }
-        if(direction === 40) {
-        this.newSnakeHead = new Blocks(headOfSnake.col,headOfSnake.row + headOfSnake.blockSize, 'blue',headOfSnake.blockSize)
+        switch(this.direction) {
+            case 'right':
+                this.newSnakeHead = new Blocks(headOfSnake.col + headOfSnake.blockSize,headOfSnake.row,headOfSnake.blockSize)
+                break;
+            case 'left':
+                this.newSnakeHead = new Blocks(headOfSnake.col - headOfSnake.blockSize,headOfSnake.row,headOfSnake.blockSize)
+                break;
+            case 'top':
+                this.newSnakeHead = new Blocks(headOfSnake.col,headOfSnake.row - headOfSnake.blockSize,headOfSnake.blockSize)
+                break;
+            case 'down':
+                this.newSnakeHead = new Blocks(headOfSnake.col,headOfSnake.row + headOfSnake.blockSize,headOfSnake.blockSize)
+                break;
+                default:
         }
         this.arrOfHeads.unshift(this.newSnakeHead)
         this.arrOfHeads.pop()
@@ -77,69 +109,101 @@ class Blocks {
 }
     }
     eatingOfApple() {
-    return this.newSnakeHead.col === apple.col && this.newSnakeHead.row === apple.row
+    return this.newSnakeHead.col === apple.col  && this.newSnakeHead.row === apple.row
     }
 }
 
-//Класс, отвечающий за прорисовку яблока и генерирование положения.
 class Apple {
-    constructor(col,row,radius,blockSize,color) {
-        this.col = col;
-        this.row = row;
+    constructor(gameBoardSize,radius,blockSize) {
+        this.gameBoardSize = gameBoardSize;
         this.radius = radius;
-        this.color = color;
+        this.color = 'green';
         this.blockSize = blockSize
+        this.row;
+        this.col;
     }
     spawnOfApple() {
-        this.col = Math.floor((Math.random()*4) + 1)*(this.blockSize**2) - 20
-        this.row = Math.floor((Math.random()*4) + 1)*(this.blockSize**2) - 20
+        let colRanNum;
+        let rowRanNum;
+         do {
+            colRanNum = Math.random().toFixed(1);
+            rowRanNum = Math.random().toFixed(1);
+         }
+          while(colRanNum < 0.1 || rowRanNum < 0.1)
+        this.col = colRanNum*this.gameBoardSize - playingArea.lineWidth
+        this.row = rowRanNum*this.gameBoardSize - playingArea.lineWidth
     }
     drawApple() {
         ctx.beginPath()
         ctx.fillStyle = this.color
-        ctx.arc(this.col,this.row,this.radius,0,2*Math.PI)
+        ctx.arc(this.col + this.radius,this.row + this.radius,this.radius,0,2*Math.PI)
         ctx.fill()
     }
 }
 
-
-let playingArea = new Canvas(0)
-let apple = new Apple(10,10,10 / 2, 10,'green')
-let snake = new Snake()
+let playingArea = new Canvas(400,400,20,0)
+let apple = new Apple(400,10/2, 10)
+let snake = new Snake('right')
+let restartBtn = new Restart(150,250,100,30);
 apple.spawnOfApple()
 
-
-let gameEnd = setInterval(function() {
-    ctx.clearRect(0,0,400,400)
-    playingArea.drawCanvas()
-    playingArea.drawScore()
-    apple.drawApple()
-    snake.drawSnakeBlocks()
-    snake.moveSnake()
-    if(snake.collision()) {
-        clearInterval(gameEnd)
-        playingArea.drawEndGameText()
-    }
-    if(snake.eatingOfApple()) {
-        playingArea.score++;
-        apple.spawnOfApple()
-        snake.arrOfHeads.push(snake.newSnakeHead)
-    }
-},100)
-
+function start() {
+        gameEnd = setInterval(function() {
+        ctx.clearRect(0,0,400,400)
+        restartBtn.isActive = false
+        playingArea.drawCanvas()
+        playingArea.drawScore()
+        apple.drawApple()
+        snake.drawSnakeBlocks()
+        snake.moveSnake()
+        if(snake.collision()) {
+            clearInterval(gameEnd)
+            playingArea.drawEndGameText()
+            restartBtn.isActive = true
+            restartBtn.drawRestartBtn()
+        }
+        if(snake.eatingOfApple()) {
+            playingArea.score++;
+            apple.spawnOfApple()
+            snake.arrOfHeads.push(snake.newSnakeHead)
+        }
+    },100)
+}
+start()
 
 
 document.querySelector('body').addEventListener('keydown', function(event) {
-    if(event.keyCode === 39) {
-        direction === 37 ? direction = 37 : direction = event.keyCode
-    }
-    if(event.keyCode === 37) {
-        direction === 39 ? direction = 39 : direction = event.keyCode;
-    }
-    if(event.keyCode === 38) {
-        direction === 40 ? direction = 40 : direction = event.keyCode
-    }
-    if(event.keyCode === 40) {
-        direction === 38 ? direction = 38 : direction = event.keyCode; 
+    switch(event.keyCode) {
+        case 39:
+            snake.direction === 'left' ? snake.direction = 'left' : snake.direction = 'right'
+            break;
+        case 37:
+            snake.direction === 'right' ? snake.direction = 'right' : snake.direction = 'left';
+            break;
+        case 38:
+            snake.direction === 'down' ? snake.direction = 'down' : snake.direction = 'top'
+            break;
+        case 40:
+            snake.direction === 'top' ? snake.direction = 'top' : snake.direction = 'down';
+            break;
     }
 });
+
+
+canvas.addEventListener('click', function(event) {
+    if(restartBtn.isActive === true) {
+        if(checkCollision(event.offsetX,event.offsetY)) {
+            clearInterval(gameEnd)
+            playingArea.score = 0;
+            apple.spawnOfApple();
+            snake.arrOfHeads = [new Blocks(200,200,10),new Blocks(190,200,10),new Blocks(180,200,10)];
+            snake.direction = 'right';
+            start()
+        }
+    }
+},false);
+
+function checkCollision(x,y) {
+    return x > restartBtn.x && x <= restartBtn.x + restartBtn.width &&
+  y >= restartBtn.y && y <= restartBtn.y + restartBtn.height ;
+}
